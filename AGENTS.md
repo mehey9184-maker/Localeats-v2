@@ -21,6 +21,11 @@
 
 ## Phase & Fix History
 
+### Phase 27: Profile Schema Conformance & PGRST204 Resolution
+- **Removed Nonexistent `id` Column Injection (`server.ts`)**: Stripped the erroneous `id: userId` field injected during Supabase upserts in `POST /api/profiles`, eliminating the `PGRST204 Could not find the 'id' column of 'profiles' in the schema cache` error.
+- **Strict Schema Whitelisting**: Sanitized `POST /api/profiles` payload to only map and send valid `public.profiles` columns (`user_id`, `fullName`, `email`, `phone`, `city`, `address`, `country`, `role`, `photo_url`, `language`, `latitude`, `longitude`, `favorites`, `updated_at`) with `{ onConflict: 'user_id' }`.
+- **Primary Key Query Standardization (`GET /api/profiles/:id`)**: Removed the fallback `.eq('id', id)` query in `server.ts` so lookups strictly query the valid primary identity column `.eq('user_id', id)`.
+
 ### Phase 26: Authentication Forensic Fix & Firebase Admin ID Token Verification
 - **Server-Side Token Verification (`server.ts`)**: Initialized `firebase-admin` using the project ID (`localeats-5e26e`) to cryptographically verify Firebase ID tokens via `firebaseAdminAuth.verifyIdToken(token)`.
 - **Verified UID Resolution**: Configured `authenticateJWT` so that `req.user.id` strictly resolves to `decoded.uid` from the verified token, eliminating the token-string mismatch bug and preventing client-spoofed user IDs.

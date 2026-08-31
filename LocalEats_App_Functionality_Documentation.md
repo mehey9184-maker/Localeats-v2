@@ -58,3 +58,9 @@ LocalEats is a robust, mobile-first web application bridging customers with loca
 - **Verified UID Resolution**: Replaced the bug where `req.user.id` was set to the raw token string or unverified client assertions. `req.user.id` now strictly resolves to `decodedToken.uid`.
 - **Client Auth Header Alignment (`src/lib/apiAuth.ts`)**: Updated `getApiAuthHeaders()` to retrieve the Firebase ID token from `auth.currentUser` or session and format it with the `Bearer fb-<token>` scheme.
 - **Multi-Scheme Fallback Compatibility**: Configured `authenticateJWT` to cleanly accept `fb-` tokens, `sb-` tokens (checking Supabase Admin first, then falling back to Firebase token verification for legacy clients), and raw Bearer tokens without dropping sessions.
+
+### Phase 27: Profile Schema Conformance & PGRST204 Resolution
+- **Removed Nonexistent `id` Column Injection (`server.ts`)**: Stripped the erroneous `id: userId` field injected during Supabase upserts in `POST /api/profiles`, resolving the `PGRST204 Could not find the 'id' column of 'profiles' in the schema cache` error.
+- **Strict Schema Whitelisting**: Sanitized `POST /api/profiles` payload to only map and send valid `public.profiles` columns (`user_id`, `fullName`, `email`, `phone`, `city`, `address`, `country`, `role`, `photo_url`, `language`, `latitude`, `longitude`, `favorites`, `updated_at`) with `{ onConflict: 'user_id' }`.
+- **Primary Key Query Standardization (`GET /api/profiles/:id`)**: Removed the fallback `.eq('id', id)` query in `server.ts` so lookups strictly query the valid primary identity column `.eq('user_id', id)`.
+

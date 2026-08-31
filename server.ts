@@ -159,25 +159,39 @@ app.post("/api/profiles", authenticateJWT, async (req: any, res: any) => {
       return res.status(403).json({ error: "Forbidden: user_id mismatch" });
     }
 
+    const upsertPayload: Record<string, any> = {
+      user_id: userId,
+      updated_at: new Date().toISOString()
+    };
+
+    // Map aliases to strict schema column names
+    const resolvedFullName = profile.fullName ?? profile.full_name ?? profile.name;
+    if (resolvedFullName !== undefined) upsertPayload.fullName = resolvedFullName;
+
+    const resolvedPhotoUrl = profile.photo_url ?? profile.avatar_url ?? profile.photoURL;
+    if (resolvedPhotoUrl !== undefined) upsertPayload.photo_url = resolvedPhotoUrl;
+
+    const resolvedAddress = profile.address ?? profile.default_address;
+    if (resolvedAddress !== undefined) upsertPayload.address = resolvedAddress;
+
+    // Include other valid schema columns if provided
+    for (const key of ['email', 'phone', 'city', 'country', 'role', 'language', 'latitude', 'longitude', 'favorites']) {
+      if (profile[key] !== undefined) {
+        upsertPayload[key] = profile[key];
+      }
+    }
+
     if (!supabaseAdmin) {
       serverProfiles[userId] = {
         ...serverProfiles[userId],
-        ...profile,
-        user_id: userId,
-        id: userId,
-        updated_at: new Date().toISOString(),
+        ...upsertPayload,
       };
       return res.json({ success: true, profile: serverProfiles[userId] });
     }
 
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .upsert({
-        ...profile,
-        user_id: userId,
-        id: userId,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "user_id" })
+      .upsert(upsertPayload, { onConflict: "user_id" })
       .select()
       .single();
 
@@ -220,13 +234,7 @@ app.get("/api/profiles/:id", authenticateJWT, async (req: any, res: any) => {
     }
 
     if (!data) {
-      const { data: data2, error: err2 } = await supabaseAdmin
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      if (!data2) return res.status(404).json({ error: "Profile not found" });
-      return res.json({ profile: data2 });
+      return res.status(404).json({ error: "Profile not found" });
     }
 
     return res.json({ profile: data });
