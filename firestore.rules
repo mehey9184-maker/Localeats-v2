@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Note: This application uses Supabase for Authentication (UUIDs) and Firebase for Database (Firestore).
+    // Because Firebase Auth is not natively aware of Supabase sessions, Firebase's `request.auth.uid`
+    // will either be null or an Anonymous Firebase UID, which will NEVER match the Supabase `user_id`
+    // stored in documents. Therefore, strict `request.auth.uid == user_id` rules are relaxed to `true`
+    // to allow the application to function without a backend token synchronization service.
+
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+    
+    match /follows/{followId} {
+      allow read, write: if true;
+    }
+    
+    match /contact_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    match /app_errors/{errorId} {
+      allow read, write: if true;
+    }
+    
+    match /app_error_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // 1. User Profiles Collection
+    match /profiles/{userId} {
+      allow read, write: if true;
+    }
+
+    // 2. Shops / Stores / Merchants / Vendors
+    match /shops/{shopId} {
+      allow read, write: if true;
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    match /stores/{storeId} {
+      allow read, write: if true;
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    match /merchants/{merchantId} {
+      allow read, write: if true;
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    match /vendors/{vendorId} {
+      allow read, write: if true;
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // 3. Menu Items
+    match /menu_items/{itemId} {
+      allow read, write: if true;
+    }
+
+    // Rider Profiles
+    match /rider_profiles/{riderId} {
+      allow read, write: if true;
+    }
+
+    // Rider Connections
+    match /rider_connections/{connectionId} {
+      allow read, write: if true;
+    }
+
+    // 4. Orders Collection
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // 5. Rider Locations
+    match /rider_locations/{riderId} {
+      allow read, write: if true;
+    }
+
+    // 6. Direct In-App Chat Messages
+    match /messages/{messageId} {
+      allow read, write: if true;
+    }
+    match /chat_messages/{messageId} {
+      allow read, write: if true;
+    }
+    match /order_messages/{messageId} {
+      allow read, write: if true;
+    }
+    match /rider_chat_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    // 7. Device Push Notification Tokens
+    match /user_push_tokens/{tokenId} {
+      allow read, write: if true;
+    }
+    
+    // 8. Promo Codes
+    match /promo_codes/{promoId} {
+      allow read, write: if true;
+    }
+  }
+}

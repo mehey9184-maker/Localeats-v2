@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LocalEats | Local's Best Kota & Braai Delivery</title>
+    <meta name="description" content="Order the best Kota, Braai, and local flavors in Local. LocalEats connects you with legendary food spots for collection and delivery. Support local, eat legendary." />
+    <meta name="keywords" content="Local, Kota, Braai, Food Delivery, LocalEats, South Africa, Street Food, Takeaway" />
+    <link rel="manifest" href="/manifest.json?v=2" />
+    <link rel="icon" type="image/png" href="/logo.png?v=2" />
+    <link rel="apple-touch-icon" href="/logo.png?v=2" />
+    <meta name="theme-color" content="#FF6B00" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://localeatssa.co.za/" />
+    <meta property="og:title" content="LocalEats | Local's Best Kota & Braai" />
+    <meta property="og:description" content="Order the best local flavors in Local. Support local, eat legendary." />
+    <meta property="og:image" content="https://picsum.photos/seed/localeats/1200/630" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://localeatssa.co.za/" />
+    <meta property="twitter:title" content="LocalEats | Local's Best Kota & Braai" />
+    <meta property="twitter:description" content="Order the best local flavors in Local. Support local, eat legendary." />
+    <meta property="twitter:image" content="https://picsum.photos/seed/localeats/1200/630" />
+
+    <script>
+      // Only initialize OneSignal if we are on the production domain or allowLocalhost is set.
+      // We skip initialization in the AI Studio preview to prevent Service Worker fetch interception errors.
+      if (!window.location.hostname.includes('run.app') && !window.location.hostname.includes('localhost')) {
+        const script = document.createElement('script');
+        script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+        script.defer = true;
+        document.head.appendChild(script);
+
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.init({
+            appId: "9b7e9074-b5ad-4f31-b2a5-6d9fa1a31aa2",
+            notifyButton: {
+              enable: true,
+            },
+            allowLocalhostAsSecureOrigin: true
+          });
+        });
+      } else {
+        // Unregister conflicting legacy/external service workers in preview, but preserve our custom SW
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              const activeWorker = registration.active || registration.installing || registration.waiting;
+              if (activeWorker && (activeWorker.scriptURL.includes('onesignal') || activeWorker.scriptURL.includes('OneSignal'))) {
+                registration.unregister();
+                console.log('Unregistered OneSignal Service Worker:', registration);
+              }
+            }
+          });
+        }
+        // Force-clear browser cache collections created by the development service worker
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+              console.log('Cleared development SW Cache Storage:', name);
+            }
+          });
+        }
+      }
+
+      // Global Error Debugging - Automated self-healing with infinite reload loop protection
+      window.addEventListener('error', function(e) {
+        console.error('Runtime App Crash Detected:', e.message, 'At:', e.filename, e.lineno, e.colno, 'Stack:', e.error ? e.error.stack : 'N/A');
+        
+        try {
+          // Prevent infinite reload loops using a sessionStorage-backed throttle gate
+          var lastHealed = sessionStorage.getItem('localeats_last_healing_time');
+          var now = Date.now();
+          if (lastHealed && (now - parseInt(lastHealed, 10)) < 15000) {
+            console.warn('Frequent crashing detected. Automatic self-healing reload halted to prevent loop.');
+            return;
+          }
+          sessionStorage.setItem('localeats_last_healing_time', now.toString());
+          
+          console.warn('Initiating automated self-healing protocol... clearing site storage and refreshing');
+          
+          // 1. Reset Local & Session Storage (re-saving throttle key)
+          localStorage.clear();
+          sessionStorage.clear();
+          sessionStorage.setItem('localeats_last_healing_time', now.toString());
+          
+          // 2. Deregister Service Workers which may hold poisoned cache structures
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (var i = 0; i < registrations.length; i++) {
+                registrations[i].unregister();
+              }
+            });
+          }
+          
+          // 3. Wipe and clear Cache Storage
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var i = 0; i < names.length; i++) {
+                caches.delete(names[i]);
+              }
+            });
+          }
+          
+          // 4. Force hard reload from server
+          setTimeout(function() {
+            window.location.reload();
+          }, 600);
+        } catch (err) {
+          console.error('Self-healing routine error:', err);
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled Promise Rejection, Reason:', e.reason);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
