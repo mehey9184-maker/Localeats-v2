@@ -2003,22 +2003,17 @@ export default function App() {
               role: fallbackRole,
             }));
 
-            // Non-blocking upsert to ensure row exists in profiles table
-            Promise.resolve(
-              FirestoreService.saveProfile(userId, {
-                user_id: userId,
-                id: userId,
-                email: authUser.email,
-                full_name: fallbackName,
-                "fullName": fallbackName,
-                phone: fallbackPhone,
-                role: fallbackRole,
-                city: "Johannesburg",
-                country: "South Africa",
-                updated_at: new Date().toISOString(),
-              })
-            ).catch((e) => {
-              console.info("[Profile Auto-Upsert Notice]", e?.message || e);
+            // Non-blocking upsert to ensure row exists in profiles table via authoritative Supabase API
+            upsertProfileWithRPC({
+              user_id: userId,
+              email: authUser.email,
+              fullName: fallbackName,
+              phone: fallbackPhone,
+              role: fallbackRole,
+              city: "Johannesburg",
+              country: "South Africa",
+            }).catch((e) => {
+              console.debug("[Profile Auto-Upsert Notice]", e?.message || e);
             });
           }
         } catch (authFetchErr) {
@@ -2985,11 +2980,30 @@ export default function App() {
     }
   }, []); // Run on mount
 
+  const initialFavoritesHydratedRef = useRef(false);
+  const prevFavoritesJsonRef = useRef<string>(JSON.stringify(favorites));
+
   useEffect(() => {
+    // Avoid duplicate profile writes on initial app hydration
+    if (!initialFavoritesHydratedRef.current) {
+      initialFavoritesHydratedRef.current = true;
+      prevFavoritesJsonRef.current = JSON.stringify(favorites);
+      return;
+    }
+
+    const currJson = JSON.stringify(favorites);
+    if (prevFavoritesJsonRef.current === currJson) {
+      return;
+    }
+    prevFavoritesJsonRef.current = currJson;
+
     // Sync favorites to profile if session exists
     if (session?.user?.id) {
-      FirestoreService.saveProfile(session.user.id, { favorites }).catch((err) => {
-        console.warn("Error syncing favorites to profile:", err);
+      upsertProfileWithRPC({
+        user_id: session.user.id,
+        favorites,
+      }).catch((err) => {
+        console.debug("[Favorites Sync Notice]", err);
       });
     }
   }, [favorites, session]);

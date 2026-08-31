@@ -192,7 +192,7 @@ if (typeof window !== "undefined") {
   }, true);
 }
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   if (
     window.location.hostname.includes('run.app') ||
     window.location.hostname.includes('localhost') ||

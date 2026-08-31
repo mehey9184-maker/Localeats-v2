@@ -21,6 +21,18 @@
 
 ## Phase & Fix History
 
+### Phase 29: Identity Type Migration & Permanent Error Classification
+- **Database Identity Column Type Migration**: Created and applied migration script converting `public.profiles.user_id`, `public.orders.user_id`, and `public.shops.owner_id` from `UUID` to `TEXT` type, seamlessly accommodating standard Firebase Auth string UIDs (`MBaX53C5u3PrASi6IAMaPWFvrEo2`) without hashing, surrogate UUID mappings, or type syntax exceptions.
+- **Server Identity Handling (`server.ts`)**: Maintained string Firebase UID values as authoritative identity across `/api/profiles` and authenticated routes verified via `firebaseAdminAuth.verifyIdToken()`, ensuring `req.user.id = decodedToken.uid`.
+- **Permanent Error Classification (`profileService.ts`)**: Implemented `isPermanentSyncError` helper identifying Postgres schema/type violations (`22P02`, `42703`, `42804`, `23502`, `PGRST204`, `PGRST205`, forbidden/mismatch errors). Permanent errors are immediately evicted from the offline queue (`clearProfileFromQueue`) and prevented from initiating retry loops or background retry storms.
+
+### Phase 28: Profile Sync Optimization & Noise Elimination
+- **Supabase Primary Authority**: Streamlined `syncProfileDirect` in `profileService.ts` to execute authoritative persistence directly against `/api/profiles` (Supabase) first.
+- **Non-Blocking Firestore Mirror**: Refactored Firestore profile sync to run asynchronously in the background as a secondary mirror without blocking the UI or delaying requests.
+- **Realistic Mirror Timeout & Single Attempt**: Updated `FirestoreService.saveProfile` to use a realistic 8-second connection timeout (replacing the artificial 1500ms race) with a single non-blocking attempt, eliminating false timeout warnings and retry storms.
+- **Hydration Deduplication**: Added hydration change detection guards (`prevFavoritesJsonRef` and `initialFavoritesHydratedRef`) in `App.tsx` and centralized auto-provisioning through `upsertProfileWithRPC`, preventing duplicate profile writes on initial app mount.
+- **ServiceWorker Dev Gating**: Gated ServiceWorker registration in `src/main.tsx` behind `import.meta.env.PROD` to eliminate development server `/sw.js` redirect errors while keeping production PWA registration unchanged.
+
 ### Phase 27: Profile Schema Conformance & PGRST204 Resolution
 - **Removed Nonexistent `id` Column Injection (`server.ts`)**: Stripped the erroneous `id: userId` field injected during Supabase upserts in `POST /api/profiles`, eliminating the `PGRST204 Could not find the 'id' column of 'profiles' in the schema cache` error.
 - **Strict Schema Whitelisting**: Sanitized `POST /api/profiles` payload to only map and send valid `public.profiles` columns (`user_id`, `fullName`, `email`, `phone`, `city`, `address`, `country`, `role`, `photo_url`, `language`, `latitude`, `longitude`, `favorites`, `updated_at`) with `{ onConflict: 'user_id' }`.

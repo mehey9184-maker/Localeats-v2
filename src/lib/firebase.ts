@@ -521,14 +521,15 @@ export const FirestoreService = {
     return null;
   },
 
-  async saveProfile(userId: string, profileData: any, retries = 2, backoffMs = 500): Promise<void> {
+  async saveProfile(userId: string, profileData: any, retries = 1, backoffMs = 500): Promise<void> {
+    if (!userId) return;
     for (let i = 0; i < retries; i++) {
       try {
         const profileDoc = doc(db, "profiles", String(userId));
         
-        // Wrap setDoc in a timeout to prevent infinite hanging
+        // Realistic 8s timeout for long-polling connection handshake without hanging
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Timeout saving to Firestore")), 1500)
+          setTimeout(() => reject(new Error("Timeout saving to Firestore mirror")), 8000)
         );
         
         await Promise.race([
@@ -543,20 +544,17 @@ export const FirestoreService = {
         
         return; // Success
       } catch (e: any) {
-        console.warn(`[FirestoreService] saveProfile attempt ${i + 1} notice:`, e?.message || e);
-        
-        // Fail fast for known permission errors in split-brain setup
-        if (e?.message?.includes("Missing or insufficient permissions")) {
-          console.info("[FirestoreService] Bypassing retries due to permission denial (expected in split-brain)");
+        // Fast exit for split-brain permission or timeout - Supabase/API is authoritative
+        if (e?.message?.includes("Missing or insufficient permissions") || e?.message?.includes("Timeout")) {
+          console.debug("[FirestoreService] Profile mirror notice (Supabase is authoritative):", e?.message || e);
           return;
         }
         
         if (i === retries - 1) {
-          console.info("[FirestoreService] saveProfile gracefully handled (expected in split-brain):", e?.message || e);
-          // Graceful fallback for dual-auth split-brain when rules aren't deployed
+          console.debug("[FirestoreService] saveProfile mirror gracefully handled:", e?.message || e);
           return;
         }
-        await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(1.5, i))); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
     }
   },
