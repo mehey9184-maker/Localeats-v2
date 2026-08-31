@@ -52,3 +52,9 @@ LocalEats is a robust, mobile-first web application bridging customers with loca
 
 ### Phase 25: Auth Metadata Synchronization
 - **Metadata Alignment**: Updated `handleUpdateProfile` in `src/App.tsx` to automatically invoke `supabase.auth.updateUser` alongside database writes, natively syncing `user_metadata` directly into the Supabase Identity platform so the auth state never desyncs from the database layer.
+
+### Phase 26: Authentication Forensic Fix & Firebase Admin ID Token Verification
+- **Authoritative Server-Side Token Verification**: Initialized `firebase-admin` in `server.ts` with the project ID (`localeats-5e26e`) to cryptographically verify Firebase ID tokens using `firebaseAdminAuth.verifyIdToken(token)`.
+- **Verified UID Resolution**: Replaced the bug where `req.user.id` was set to the raw token string or unverified client assertions. `req.user.id` now strictly resolves to `decodedToken.uid`.
+- **Client Auth Header Alignment (`src/lib/apiAuth.ts`)**: Updated `getApiAuthHeaders()` to retrieve the Firebase ID token from `auth.currentUser` or session and format it with the `Bearer fb-<token>` scheme.
+- **Multi-Scheme Fallback Compatibility**: Configured `authenticateJWT` to cleanly accept `fb-` tokens, `sb-` tokens (checking Supabase Admin first, then falling back to Firebase token verification for legacy clients), and raw Bearer tokens without dropping sessions.

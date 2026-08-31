@@ -21,6 +21,12 @@
 
 ## Phase & Fix History
 
+### Phase 26: Authentication Forensic Fix & Firebase Admin ID Token Verification
+- **Server-Side Token Verification (`server.ts`)**: Initialized `firebase-admin` using the project ID (`localeats-5e26e`) to cryptographically verify Firebase ID tokens via `firebaseAdminAuth.verifyIdToken(token)`.
+- **Verified UID Resolution**: Configured `authenticateJWT` so that `req.user.id` strictly resolves to `decoded.uid` from the verified token, eliminating the token-string mismatch bug and preventing client-spoofed user IDs.
+- **Client Auth Header Scheme (`src/lib/apiAuth.ts`)**: Updated `getApiAuthHeaders()` to construct `Authorization: Bearer fb-<token>` directly from `auth.currentUser.getIdToken()`, ensuring the server routes the token through Firebase token verification without Supabase mismatch errors.
+- **Resilient Fallback Middleware**: Preserved backward compatibility for `sb-` and raw tokens by falling back to Firebase token verification if Supabase verification fails, ensuring smooth multi-session continuity.
+
 ### Phase 22: Interactive Cart Summary Drawer & Address Quick-Switcher
 - **Interactive Slide-Over Cart Drawer (`CartDrawer.tsx`)**: Developed a bottom-sheet slide-over cart drawer with full item editing (+ / − quantity increments, item removal, cart clearing, and price breakdown).
 - **Floating Cart Action Pill (`FloatingCartButton.tsx`)**: Mounted a floating animated cart action pill with item counts, live animated total, and smooth entrance/exit transitions across customer screens whenever cart items are present.

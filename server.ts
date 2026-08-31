@@ -3,9 +3,22 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
+import { initializeApp as initAdminApp, getApps as getAdminApps } from "firebase-admin/app";
+import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// Initialize Firebase Admin for server-side ID token verification
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "localeats-5e26e";
+
+if (getAdminApps().length === 0) {
+  initAdminApp({
+    projectId: FIREBASE_PROJECT_ID,
+  });
+}
+
+export const firebaseAdminAuth = getAdminAuth();
 
 // Initialize server-side Supabase client with Service Role Key
 // IMPORTANT: Never expose SUPABASE_SERVICE_ROLE_KEY to the frontend
@@ -51,8 +64,7 @@ app.get("/api/health", (req, res) => {
 const serverOrders: any[] = [];
 const serverProfiles: Record<string, any> = {};
 
-
-// Authentication Middleware
+// Authentication Middleware with authoritative Firebase Admin ID token verification
 const authenticateJWT = async (req: any, res: any, next: any) => {
   const authHeader = req.headers?.authorization;
   if (!authHeader) {
@@ -61,32 +73,77 @@ const authenticateJWT = async (req: any, res: any, next: any) => {
   const tokenRaw = authHeader.split(' ')[1];
   if (!tokenRaw) return res.status(401).json({ error: 'Invalid token format' });
 
-  if (!supabaseAdmin) {
-    (req as any).user = { id: 'anon' };
-    return next();
+  // 1. Firebase Token scheme (fb- prefix)
+  if (tokenRaw.startsWith('fb-')) {
+    const token = tokenRaw.replace(/^fb-/, '');
+    try {
+      const decoded = await firebaseAdminAuth.verifyIdToken(token);
+      (req as any).user = {
+        id: decoded.uid,
+        uid: decoded.uid,
+        email: decoded.email,
+        ...decoded
+      };
+      return next();
+    } catch (fbErr: any) {
+      console.warn("[Auth Middleware] Firebase ID token verification failed:", fbErr?.message || fbErr);
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
   }
 
+  // 2. Supabase or Legacy Token scheme (sb- prefix)
   if (tokenRaw.startsWith('sb-')) {
-    const token = tokenRaw.replace('sb-', '');
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+    const token = tokenRaw.replace(/^sb-/, '');
+
+    // Try Supabase Admin first if configured
+    if (supabaseAdmin) {
+      try {
+        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+        if (!error && user) {
+          (req as any).user = user;
+          return next();
+        }
+      } catch (_) {}
     }
-    (req as any).user = user;
-    return next();
-  } else if (tokenRaw.startsWith('fb-')) {
-    const token = tokenRaw.replace('fb-', '');
-    (req as any).user = { id: token };
-    return next();
-  } else {
-    // Fallback to supabase for raw tokens
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(tokenRaw);
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-    (req as any).user = user;
-    return next();
+
+    // Fallback: Verify as Firebase ID token (handles legacy clients sending Firebase token with sb- prefix)
+    try {
+      const decoded = await firebaseAdminAuth.verifyIdToken(token);
+      (req as any).user = {
+        id: decoded.uid,
+        uid: decoded.uid,
+        email: decoded.email,
+        ...decoded
+      };
+      return next();
+    } catch (_) {}
+
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
+
+  // 3. Raw Bearer Token without prefix
+  try {
+    const decoded = await firebaseAdminAuth.verifyIdToken(tokenRaw);
+    (req as any).user = {
+      id: decoded.uid,
+      uid: decoded.uid,
+      email: decoded.email,
+      ...decoded
+    };
+    return next();
+  } catch (_) {}
+
+  if (supabaseAdmin) {
+    try {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(tokenRaw);
+      if (!error && user) {
+        (req as any).user = user;
+        return next();
+      }
+    } catch (_) {}
+  }
+
+  return res.status(401).json({ error: 'Invalid or expired token' });
 };
 
 // API Endpoint for resilient Profile Sync

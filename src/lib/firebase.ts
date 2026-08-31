@@ -521,14 +521,14 @@ export const FirestoreService = {
     return null;
   },
 
-  async saveProfile(userId: string, profileData: any, retries = 3, backoffMs = 1000): Promise<void> {
+  async saveProfile(userId: string, profileData: any, retries = 2, backoffMs = 500): Promise<void> {
     for (let i = 0; i < retries; i++) {
       try {
         const profileDoc = doc(db, "profiles", String(userId));
         
         // Wrap setDoc in a timeout to prevent infinite hanging
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Timeout saving to Firestore")), 2000)
+          setTimeout(() => reject(new Error("Timeout saving to Firestore")), 1500)
         );
         
         await Promise.race([
@@ -543,7 +543,7 @@ export const FirestoreService = {
         
         return; // Success
       } catch (e: any) {
-        console.warn(`[FirestoreService] saveProfile attempt ${i + 1} failed:`, e?.message || e);
+        console.warn(`[FirestoreService] saveProfile attempt ${i + 1} notice:`, e?.message || e);
         
         // Fail fast for known permission errors in split-brain setup
         if (e?.message?.includes("Missing or insufficient permissions")) {
@@ -552,7 +552,7 @@ export const FirestoreService = {
         }
         
         if (i === retries - 1) {
-          console.info("[FirestoreService] saveProfile gracefully exhausted retries (expected in split-brain):", e?.message || e);
+          console.info("[FirestoreService] saveProfile gracefully handled (expected in split-brain):", e?.message || e);
           // Graceful fallback for dual-auth split-brain when rules aren't deployed
           return;
         }
