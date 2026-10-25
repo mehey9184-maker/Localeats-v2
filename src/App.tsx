@@ -209,6 +209,7 @@ import {
   Maximize2,
   Minimize2,
   FolderOpen,
+  Film,
 } from "lucide-react";
 import { supabase, supabaseUrl, supabaseAnonKey, APP_URL, getFreshChannel, getResilientSession, saveCustomSupabaseConfig, resetToDefaultSupabaseConfig, isCustomSupabaseConfigured } from "./lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -231,6 +232,7 @@ import {
 } from "./screens/auth";
 
 import { SplashScreen } from "./screens/SplashScreen";
+import { PromoClipsStudio } from "./promo-demo/PromoClipsStudio";
 
 import { AppSkeletonLoader } from "./components/AppSkeletonLoader";
 import { AuthSkeleton } from "./components/AuthSkeleton";
@@ -428,6 +430,33 @@ export default function App() {
     }
     return false;
   });
+
+  const [showPromoStudio, setShowPromoStudio] = useState<boolean>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        return (
+          params.get("studio") === "true" ||
+          params.get("promo") === "true" ||
+          window.location.hash === "#promo-studio" ||
+          window.location.hash === "#studio"
+        );
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === "#promo-studio" || window.location.hash === "#studio") {
+        setShowPromoStudio(true);
+      }
+    };
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
 
   useEffect(() => {
     const handleTourStart = () => setIsTourActive(true);
@@ -3375,6 +3404,29 @@ export default function App() {
     }
   }, [userProfile, session, favorites]);
 
+  if (showPromoStudio) {
+    return (
+      <PromoClipsStudio
+        onBackToApp={() => {
+          setShowPromoStudio(false);
+          try {
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("studio");
+              url.searchParams.delete("promo");
+              if (url.hash === "#promo-studio" || url.hash === "#studio") {
+                url.hash = "";
+              }
+              window.history.replaceState({}, "", url.toString());
+            }
+          } catch {
+            // ignore
+          }
+        }}
+      />
+    );
+  }
+
   if (isRestoringSession) {
     return (
       <div className="relative min-h-screen">
@@ -4348,6 +4400,25 @@ export default function App() {
               </Suspense>
             </div>
           )}
+          {/* Promo Clips Studio Floating Action Pill */}
+          {["home", "discover", "explore", "profile", "settings"].includes(currentScreen) && (
+            <div className="fixed top-20 right-3 z-[1100] pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPromoStudio(true);
+                  triggerHaptic(5);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 dark:bg-slate-800/90 hover:bg-orange-600 dark:hover:bg-orange-600 text-white text-[11px] font-black uppercase tracking-wider shadow-lg backdrop-blur-md border border-white/20 transition-all active:scale-95 cursor-pointer group"
+                title="Open LocalEats Promo Clips Studio for Synthesia"
+              >
+                <Film className="w-3.5 h-3.5 text-orange-400 group-hover:text-white transition-colors" />
+                <span className="hidden sm:inline">Promo Studio</span>
+                <span className="sm:hidden">Studio</span>
+              </button>
+            </div>
+          )}
+
           {/* Global Floating Real-time Order Mini Tracker */}
           <ActiveOrderMiniTracker
             orders={orders}

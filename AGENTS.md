@@ -21,6 +21,13 @@
 
 ## Phase & Fix History
 
+### Phase 30: Standalone LocalEats Promo Clips Studio for Synthesia
+- **Promo Clips Studio (`/src/promo-demo/`)**: Engineered an in-memory video generation studio delivering the six 1920×1080 landscape (30 fps, ~5s each) app-demonstration video clips specifically for the user's Synthesia promotional video.
+- **Strict Customer Journey Consistency**: Preserved identical state throughout: Order Reference (`#LE-7842`), Customer (`Thabo Mokoena`, +27 82 345 6789), Restaurant (`Mama's Kota Kitchen`, 246 Jiyane St, Tembisa), Meal (`Special Double Cheese Kota`), Price (`R 55.00`), and Fulfillment (`Counter Collection / Pickup`).
+- **Zero Production Mutation**: Completely isolated demo mock data with procedural vector rendering (zero external image CORS/taint bugs) and pure client-side `MediaRecorder` + `canvas.captureStream(30)` video encoding.
+- **Export Engine (`zipExporter.ts`)**: Built 1-tap individual WebM clip download and full ZIP archive creation (`LocalEats_Synthesia_Promo_Clips.zip`) packaging all 6 clips and comprehensive `README.md` placement guide.
+- **Seamless Navigation**: Integrated dual access triggers via URL parameter (`?studio=true`, `#promo-studio`) and a sleek persistent floating action pill (`🎬 Promo Studio`) across main browsing views with instant return to the app.
+
 ### Phase 29: Identity Type Migration & Permanent Error Classification
 - **Database Identity Column Type Migration**: Created and applied migration script converting `public.profiles.user_id`, `public.orders.user_id`, and `public.shops.owner_id` from `UUID` to `TEXT` type, seamlessly accommodating standard Firebase Auth string UIDs (`MBaX53C5u3PrASi6IAMaPWFvrEo2`) without hashing, surrogate UUID mappings, or type syntax exceptions.
 - **Server Identity Handling (`server.ts`)**: Maintained string Firebase UID values as authoritative identity across `/api/profiles` and authenticated routes verified via `firebaseAdminAuth.verifyIdToken()`, ensuring `req.user.id = decodedToken.uid`.

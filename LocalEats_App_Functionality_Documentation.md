@@ -76,3 +76,10 @@ LocalEats is a robust, mobile-first web application bridging customers with loca
 - **Server Identity Handling (`server.ts`)**: Maintained string Firebase UID values as authoritative identity across `/api/profiles` and authenticated routes verified via `firebaseAdminAuth.verifyIdToken()`, ensuring `req.user.id = decodedToken.uid`.
 - **Permanent Error Classification (`profileService.ts`)**: Implemented `isPermanentSyncError` identifying schema/type issues (`22P02`, `42703`, `42804`, `23502`, `PGRST204`, `PGRST205`, forbidden/mismatch). Permanent errors evict the profile from the offline queue immediately and skip retries, preventing retry storms while transient network issues continue to retry with exponential backoff.
 
+### Phase 30: Standalone LocalEats Promo Clips Studio for Synthesia
+- **Promo Clips Studio (`/src/promo-demo/`)**: Built an isolated in-memory video generation studio delivering the six 1920×1080 landscape (30 fps, ~5s each) app-demonstration video clips for the Synthesia promotional video.
+- **Strict Journey Consistency**: Enforced identical order reference (`#LE-7842`), customer (`Thabo Mokoena`), restaurant (`Mama's Kota Kitchen`, 246 Jiyane St, Tembisa), meal (`Special Double Cheese Kota`, R55.00), and pickup/collection method throughout all clips.
+- **Zero Production Mutation**: Fully isolated in-memory demo mock data with procedural vector rendering (zero external image CORS/taint bugs) and pure client-side `MediaRecorder` + `canvas.captureStream(30)` video encoding.
+- **Export Engine (`zipExporter.ts`)**: Built 1-tap individual WebM clip download and full ZIP archive creation (`LocalEats_Synthesia_Promo_Clips.zip`) packaging all 6 clips and comprehensive `README.md` placement guide.
+- **Seamless Navigation**: Integrated dual access triggers via URL parameter (`?studio=true`, `#promo-studio`) and a sleek persistent floating action pill (`🎬 Promo Studio`) across main browsing views with instant return to the app.
+
